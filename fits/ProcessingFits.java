@@ -12,13 +12,13 @@ import nom.tam.util.BufferedDataOutputStream;
 
 public class ProcessingFits {
 	
-	private static final String file = "FOCFITS.fits";
 	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		try {
-			float[][] imageData = read(file);
-			write(imageData);
+			String file = "FOCFITS.fits";
+			
+			write(readOrEdit(file, true));
 		} catch (FitsException e) {
 			System.out.println("Fits exception: " + e.getMessage());
 		} catch (IOException e) {
@@ -26,24 +26,39 @@ public class ProcessingFits {
 		}
 	}
 	
-	public static float[][] read(String file) throws FitsException, IOException {
-		Fits f = new Fits(file);
-		ImageHDU hdu = (ImageHDU) f.getHDU(0);
-		float[][] image = (float[][]) hdu.getKernel();
-		System.out.println(image[100][23]);
-		f.close();
+	public static Fits readOrEdit(String file, boolean edit) throws FitsException, IOException {
+		Fits fitsFile = new Fits(file);
 		
-		return image;
+		ImageHDU hdu = (ImageHDU) fitsFile.getHDU(0);
+		float[][] imageState = (float[][]) hdu.getKernel();
+		
+		if (edit) {
+			for (int i = 0; i < imageState.length; i++) {
+				for (int j = 0; j < imageState[i].length; j++) {
+					imageState[i][j] += 10f;
+				}
+			}
+			hdu.rewrite();
+		}
+		
+		fitsFile.close();
+		
+//		TableHDU thdu = (TableHDU) fitsFile.getHDU(1);
+//		thdu.setElement(3, 0, "NewName");
+//		thdu.rewrite();
+		return fitsFile;
 	}
 	
-	public static void write(float[][] imageData) throws FitsException, IOException {
-		Fits f = new Fits();
-		f.addHDU(FitsFactory.hduFactory(imageData));
+	public static void write(Fits file) throws FitsException, IOException {
+		Fits fresh = new Fits();
+		
+		ImageHDU hdu = (ImageHDU) file.getHDU(0);
+		fresh.addHDU(FitsFactory.hduFactory(hdu.getKernel()));
 		
 		BufferedDataOutputStream out = new BufferedDataOutputStream(new FileOutputStream(new File("testimg.fits")));     
-		f.write(out);
+		fresh.write(out);
 		out.close();
-		f.close();
+		fresh.close();
 	}
 
 }
