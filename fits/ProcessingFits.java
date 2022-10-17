@@ -16,9 +16,9 @@ public class ProcessingFits {
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		try {
-			String file = "FOCFITS.fits";
+			String file = "foc.fits";
 			
-			write(readOrEdit(file, true));
+			writeAndEdit(read(file), true);
 		} catch (FitsException e) {
 			System.out.println("Fits exception: " + e.getMessage());
 		} catch (IOException e) {
@@ -26,10 +26,21 @@ public class ProcessingFits {
 		}
 	}
 	
-	public static Fits readOrEdit(String file, boolean edit) throws FitsException, IOException {
+	public static Fits read(String file) throws FitsException, IOException {
 		Fits fitsFile = new Fits(file);
 		
-		ImageHDU hdu = (ImageHDU) fitsFile.getHDU(0);
+//		ImageHDU hdu = (ImageHDU) fitsFile.getHDU(0);
+//		float[][] imageState = (float[][]) hdu.getKernel();
+//		System.out.println(imageState[0][106]);
+		
+		return fitsFile;
+	}
+	
+	public static void writeAndEdit(Fits file, boolean edit) throws FitsException, IOException {
+		Fits fresh = new Fits();
+		
+		ImageHDU hdu = (ImageHDU) file.getHDU(0);
+		fresh.addHDU(FitsFactory.hduFactory(hdu.getKernel()));
 		float[][] imageState = (float[][]) hdu.getKernel();
 		
 		if (edit) {
@@ -38,27 +49,14 @@ public class ProcessingFits {
 					imageState[i][j] += 10f;
 				}
 			}
+			
 			hdu.rewrite();
-		}
+		} 
 		
-		fitsFile.close();
-		
-//		TableHDU thdu = (TableHDU) fitsFile.getHDU(1);
-//		thdu.setElement(3, 0, "NewName");
-//		thdu.rewrite();
-		return fitsFile;
-	}
-	
-	public static void write(Fits file) throws FitsException, IOException {
-		Fits fresh = new Fits();
-		
-		ImageHDU hdu = (ImageHDU) file.getHDU(0);
-		fresh.addHDU(FitsFactory.hduFactory(hdu.getKernel()));
-		
-		BufferedDataOutputStream out = new BufferedDataOutputStream(new FileOutputStream(new File("testimg.fits")));     
+		// Can change "foc.fits" to another name to create a new file with edited values
+		BufferedDataOutputStream out = new BufferedDataOutputStream(new FileOutputStream(new File("foc.fits")));     
 		fresh.write(out);
 		out.close();
 		fresh.close();
 	}
-
 }
