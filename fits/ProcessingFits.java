@@ -13,24 +13,17 @@ import nom.tam.util.BufferedDataOutputStream;
 public class ProcessingFits {
 
 	private String file;
-	private boolean write;
 	private float value;
 
-	public ProcessingFits(String file, boolean write, float value) {
+	public ProcessingFits(String file, float value) {
 		this.file = file;
-		this.write = write;
 		this.value = value;
 	}
 
 	public String toString() {
-		return "Fits' file: " + this.file + "\nWriting to a new file: "
-				+ this.write + "\nEditing value: " + this.value;
+		return "Fits' file: " + this.file + "\nEditing value: " + this.value;
 	}
-	
-	public void changeWrite() {
-		this.write = !this.write;
-	}
-	
+
 	public void setValue(int value) {
 		this.value = value;
 	}
@@ -48,56 +41,56 @@ public class ProcessingFits {
 
 		return imageState;
 	}
-
-	public float[][] editAndWrite() throws FitsException, IOException {
-		// TODO: More efficient algorithm of editing/writing.
+	
+	public void drawCircle() throws FitsException, IOException {
 		Fits fits = new Fits(this.file);
-		// New Fits object
-		Fits fresh = new Fits();
-
 		ImageHDU hdu = (ImageHDU) fits.getHDU(0);
-		fresh.addHDU(FitsFactory.hduFactory(hdu.getKernel()));
-		float[][] imageState = (float[][]) hdu.getKernel();
+		float[][] imageData = (float[][]) hdu.getKernel();
+		int ic = imageData.length / 2, jc = imageData[0].length / 2;
+		float radius = 10f;
 		
-		String newFile = "foc" + (imageState[0][0] + this.value) + ".fits";
-		
-		for (int i = 0; i < imageState.length; i++) {
-			for (int j = 0; j < imageState[i].length; j++) {
-				if (imageState[i][j] + this.value < 0) {
-					imageState[i][j] = 0;
+		for (int i = 0; i < imageData.length; i++) {
+			for (int j = 0; j < imageData[i].length; j++) {
+				if (Math.sqrt(Math.pow(i - ic, 2) + (Math.pow(j - jc, 2))) < radius) {
+					imageData[i][j] = 1;
 				} else {
-					imageState[i][j] += this.value;
+					imageData[i][j] = 0;
 				}
 			}
-		}
-
-		hdu.rewrite();
-
-		// Write new values to a new file.
-		if (this.write) {
-			BufferedDataOutputStream out = new BufferedDataOutputStream(
-					new FileOutputStream(
-							new File(newFile)));
-			fresh.write(out);
-			out.close();
-			fresh.close();
-			
-			// Keep the original values of fits
-			for (int i = 0; i < imageState.length; i++) {
-				for (int j = 0; j < imageState[i].length; j++) {
-					imageState[i][j] -= this.value;
-				}
-			}
-
-			hdu.rewrite();
-			fits.close();
-			
-			fresh = new Fits(newFile);
-			ImageHDU freshHDU = (ImageHDU) fresh.getHDU(0);
-			imageState = (float[][]) freshHDU.getKernel();
-			fresh.close();
 		}
 		
-		return imageState;
+		hdu.rewrite();
+		
+		BufferedDataOutputStream out = new BufferedDataOutputStream(
+				new FileOutputStream(
+						new File("foccircle.fits")));
+		fits.write(out);
+		out.close();
+		fits.close();
+	}
+	
+	public void edit() throws FitsException, IOException {
+		Fits fits = new Fits(this.file);
+		String copyFile = "foc" + this.value + ".fits";
+		ImageHDU hdu = (ImageHDU) fits.getHDU(0);
+		fits.addHDU(FitsFactory.hduFactory(hdu.getKernel()));
+		
+		BufferedDataOutputStream out = new BufferedDataOutputStream(new FileOutputStream(new File(copyFile)));
+		fits.write(out);
+		out.close();
+		fits.close();
+		
+		Fits copy = new Fits(copyFile);
+		ImageHDU copyHDU = (ImageHDU) copy.getHDU(0);
+		float[][] copyState = (float[][]) copyHDU.getKernel();
+		
+		for (int i = 0; i < copyState.length; i++) {
+			for (int j = 0; j < copyState[i].length; j++) {
+				copyState[i][j] *= this.value;
+			}
+		}
+		
+		copyHDU.rewrite();
+		copy.close();
 	}
 }
