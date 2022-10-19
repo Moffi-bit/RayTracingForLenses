@@ -2,6 +2,7 @@ package fits;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 
 import nom.tam.fits.Fits;
@@ -69,7 +70,7 @@ public class ProcessingFits {
 		fits.close();
 	}
 	
-	public void edit() throws FitsException, IOException {
+	public boolean edit() throws FitsException, IOException {
 		Fits fits = new Fits(this.file);
 		String copyFile = "foc" + this.value + ".fits";
 		ImageHDU hdu = (ImageHDU) fits.getHDU(0);
@@ -92,5 +93,35 @@ public class ProcessingFits {
 		
 		copyHDU.rewrite();
 		copy.close();
+		
+		return true;
+	}
+	
+	public static void recycle() {
+		String currentDirectory = System.getProperty("user.dir");
+		String[] fitsFiles;
+
+        File abstractFile = new File(currentDirectory);
+        
+        FilenameFilter filter = new FilenameFilter() {
+            @Override
+            public boolean accept(File abstractFile, String name) {
+                return name.endsWith(".fits");
+            }
+        };
+        
+        fitsFiles = abstractFile.list(filter);
+        
+        for (int i = 0; i < fitsFiles.length; i++) {
+            System.out.println(fitsFiles[i]);
+            if (!fitsFiles[i].equals("foc.fits")) {
+            	File deletedFile = new File(fitsFiles[i]);
+            	if (deletedFile.delete()) {
+            		System.out.println(deletedFile.getName() + " successfully deleted. ");
+            	} else {
+            		System.out.println(deletedFile.getName() + " not successfully deleted.");
+            	}
+            }
+        }
 	}
 }

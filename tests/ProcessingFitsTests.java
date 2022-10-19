@@ -38,9 +38,15 @@ public class ProcessingFitsTests {
 			else {
 				process.setValue((int)(value * i));
 			}
-			process.edit();
-			System.out.println("Edit And Write Test #" + (i + 1) + ": PASSED.");
+			assertTrue(process.edit());
+			System.out.println("Edit Test #" + (i + 1) + ": PASSED.");
 		}
+	}
+	
+	@Test
+	public void recycleTests() {
+		System.out.println(testHelper("recycleTests"));
+		ProcessingFits.recycle();
 	}
 
 	private String testHelper(String methodName) {
