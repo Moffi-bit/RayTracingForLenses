@@ -33,7 +33,7 @@ public class ProcessingFitsTests {
 		float value = 100f;
 		ProcessingFits process = new ProcessingFits("foc.fits", value);
 		process.edit();
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < 16; i++) {
 			if (i == 0);
 			else {
 				process.setValue((int)(value * i));
