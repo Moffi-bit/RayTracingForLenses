@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.nio.file.Paths;
 
 import nom.tam.fits.Fits;
 import nom.tam.fits.FitsException;
@@ -14,12 +13,18 @@ import nom.tam.util.BufferedDataOutputStream;
 
 public class ProcessingFits {
 
-	private String file;
+	private String file, name;
 	private float value;
+	private static int copyCount;
 
 	public ProcessingFits(String file, float value) {
 		this.file = file;
 		this.value = value;
+	}
+
+	public ProcessingFits(String file, String name) {
+		this.file = file;
+		this.name = name;
 	}
 
 	public String toString() {
@@ -44,9 +49,14 @@ public class ProcessingFits {
 		return imageState;
 	}
 
+	public void rayTrace() throws FitsException, IOException {
+		
+	}
+
 	public void drawCircle() throws FitsException, IOException {
 		Fits fits = new Fits(this.file);
 		ImageHDU hdu = (ImageHDU) fits.getHDU(0);
+
 		float[][] imageData = (float[][]) hdu.getKernel();
 		int ic = imageData.length / 2, jc = imageData[0].length / 2;
 		float radius = 10f;
@@ -66,25 +76,40 @@ public class ProcessingFits {
 
 		BufferedDataOutputStream out = new BufferedDataOutputStream(
 				new FileOutputStream(new File("foccircle.fits")));
+
 		fits.write(out);
 		out.close();
 		fits.close();
 	}
 
-	public boolean edit() throws FitsException, IOException {
+	public String copyFits() throws FitsException, IOException {
+		copyCount++;
+		String copyFile = "foc" + copyCount + ".fits";
+		
 		Fits fits = new Fits(this.file);
-		String copyFile = "foc" + this.value + ".fits";
 		ImageHDU hdu = (ImageHDU) fits.getHDU(0);
+
 		fits.addHDU(FitsFactory.hduFactory(hdu.getKernel()));
 
 		BufferedDataOutputStream out = new BufferedDataOutputStream(
 				new FileOutputStream(new File(copyFile)));
+
 		fits.write(out);
 		out.close();
 		fits.close();
 
+		return copyFile;
+	}
+
+	public boolean multiplyFits() throws FitsException, IOException {
+		/*
+		 * Get the copy of the file passed in the constructor (so no changes are made to the original
+		 */
+		String copyFile = copyFits();
+
 		Fits copy = new Fits(copyFile);
 		ImageHDU copyHDU = (ImageHDU) copy.getHDU(0);
+
 		float[][] copyState = (float[][]) copyHDU.getKernel();
 
 		for (int i = 0; i < copyState.length; i++) {
@@ -121,7 +146,8 @@ public class ProcessingFits {
 
 		for (int i = 0; i < fitsFiles.length; i++) {
 			// System.out.println(fitsFiles[i]);
-			System.out.println("Recycle " + (float) (i + 1)/fitsFiles.length*100 + "%");
+			System.out.println("Recycle "
+					+ (float) (i + 1) / fitsFiles.length * 100 + "%");
 			if (!fitsFiles[i].equals("foc.fits")) {
 				File deletedFile = new File(fitsFiles[i]);
 				if (deletedFile.delete()) {
